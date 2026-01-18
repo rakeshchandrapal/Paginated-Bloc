@@ -48,12 +48,9 @@ class PaginatedDataBloc<T>
   /// [repository] is required and provides the data source.
   /// [itemsPerPage] defaults to [PaginationConfig.defaultItemsPerPage].
   /// [filters] are optional and passed to the repository on each request.
-  PaginatedDataBloc({
-    required this.repository,
-    int? itemsPerPage,
-    this.filters,
-  })  : itemsPerPage = itemsPerPage ?? PaginationConfig.defaultItemsPerPage,
-        super(PaginatedDataState<T>()) {
+  PaginatedDataBloc({required this.repository, int? itemsPerPage, this.filters})
+    : itemsPerPage = itemsPerPage ?? PaginationConfig.defaultItemsPerPage,
+      super(PaginatedDataState<T>()) {
     on<LoadFirstPage>(_onLoadFirstPage);
     on<LoadMoreData>(_onLoadMoreData);
     on<RefreshData>(_onRefreshData);
@@ -68,10 +65,7 @@ class PaginatedDataBloc<T>
     Emitter<PaginatedDataState<T>> emit,
   ) async {
     emit(
-      state.copyWith(
-        status: PaginationStatus.firstPageLoading,
-        error: null,
-      ),
+      state.copyWith(status: PaginationStatus.firstPageLoading, error: null),
     );
 
     try {
@@ -140,12 +134,7 @@ class PaginatedDataBloc<T>
     RefreshData event,
     Emitter<PaginatedDataState<T>> emit,
   ) async {
-    emit(
-      state.copyWith(
-        status: PaginationStatus.refreshing,
-        error: null,
-      ),
-    );
+    emit(state.copyWith(status: PaginationStatus.refreshing, error: null));
 
     try {
       final response = await repository.fetchData(
@@ -186,11 +175,7 @@ class PaginatedDataBloc<T>
       return isMatch ? event.updatedItem : item;
     }).toList();
 
-    emit(
-      state.copyWith(
-        itemsList: updatedList,
-      ),
-    );
+    emit(state.copyWith(itemsList: updatedList));
   }
 
   Future<void> _onRemoveItem(

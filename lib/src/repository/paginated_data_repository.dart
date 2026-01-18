@@ -16,10 +16,11 @@ import '../models/paginated_response.dart';
 ///   @override
 ///   Future<PaginatedResponse<User>> fetchData({
 ///     required int page,
-///     int limit = 10,
+///     int? limit,
 ///     Map<String, dynamic>? filters,
 ///   }) async {
-///     final response = await _client.getUsers(page: page, limit: limit);
+///     final effectiveLimit = limit ?? PaginationConfig.defaultItemsPerPage;
+///     final response = await _client.getUsers(page: page, limit: effectiveLimit);
 ///     return PaginatedResponse(
 ///       data: response.users,
 ///       hasMore: page < response.totalPages,
@@ -33,13 +34,13 @@ abstract class PaginatedDataRepository<T> {
   /// Fetches paginated data from the data source.
   ///
   /// [page] - The page number to fetch (1-based).
-  /// [limit] - Number of items per page.
+  /// [limit] - Number of items per page. Defaults to [PaginationConfig.defaultItemsPerPage].
   /// [filters] - Optional filters to apply to the query.
   ///
   /// Returns a [PaginatedResponse] containing the data and pagination metadata.
   Future<PaginatedResponse<T>> fetchData({
     required int page,
-    int limit = PaginationConfig.defaultItemsPerPage,
+    int? limit,
     Map<String, dynamic>? filters,
   });
 }
@@ -63,22 +64,24 @@ class InMemoryPaginatedRepository<T> extends PaginatedDataRepository<T> {
   @override
   Future<PaginatedResponse<T>> fetchData({
     required int page,
-    int limit = PaginationConfig.defaultItemsPerPage,
+    int? limit,
     Map<String, dynamic>? filters,
   }) async {
+    final effectiveLimit = limit ?? PaginationConfig.defaultItemsPerPage;
+
     if (simulatedDelay != null) {
       await Future.delayed(simulatedDelay!);
     }
 
-    final startIndex = (page - 1) * limit;
-    final endIndex = startIndex + limit;
+    final startIndex = (page - 1) * effectiveLimit;
+    final endIndex = startIndex + effectiveLimit;
 
     if (startIndex >= items.length) {
       return PaginatedResponse<T>(
         data: [],
         hasMore: false,
         currentPage: page,
-        totalPages: (items.length / limit).ceil(),
+        totalPages: (items.length / effectiveLimit).ceil(),
         totalItems: items.length,
       );
     }
@@ -92,7 +95,7 @@ class InMemoryPaginatedRepository<T> extends PaginatedDataRepository<T> {
       data: pageItems,
       hasMore: endIndex < items.length,
       currentPage: page,
-      totalPages: (items.length / limit).ceil(),
+      totalPages: (items.length / effectiveLimit).ceil(),
       totalItems: items.length,
     );
   }
