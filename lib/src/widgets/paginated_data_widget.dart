@@ -246,8 +246,19 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
 
   bool get _shouldLoadMore {
     if (!_scrollController.hasClients) return false;
+
+    final state = context.read<PaginatedDataBloc<T>>().state;
+
+    // Don't load more if already loading or reached max
+    if (state.hasReachedMax || state.isLoadingMore) return false;
+
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.offset;
+
+    // If content doesn't fill the screen, maxScroll will be 0
+    // In that case, we should load more if not at max
+    if (maxScroll == 0) return true;
+
     return currentScroll >= (maxScroll * widget.loadMoreThreshold);
   }
 
