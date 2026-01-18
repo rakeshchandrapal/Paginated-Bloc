@@ -123,7 +123,7 @@ class UserRepository extends PaginatedDataRepository<User> {
   @override
   Future<PaginatedResponse<User>> fetchData({
     required int page,
-    int limit = 10,
+    int? limit,
     Map<String, dynamic>? filters,
   }) async {
     // Simulate network delay
@@ -134,15 +134,16 @@ class UserRepository extends PaginatedDataRepository<User> {
     //   throw Exception('Simulated network error');
     // }
 
-    final startIndex = (page - 1) * limit;
-    final endIndex = startIndex + limit;
+    final effectiveLimit = limit ?? 10;
+    final startIndex = (page - 1) * effectiveLimit;
+    final endIndex = startIndex + effectiveLimit;
 
     if (startIndex >= _users.length) {
       return PaginatedResponse<User>(
         data: [],
         hasMore: false,
         currentPage: page,
-        totalPages: (_users.length / limit).ceil(),
+        totalPages: (_users.length / effectiveLimit).ceil(),
         totalItems: _users.length,
       );
     }
@@ -156,7 +157,7 @@ class UserRepository extends PaginatedDataRepository<User> {
       data: pageUsers,
       hasMore: endIndex < _users.length,
       currentPage: page,
-      totalPages: (_users.length / limit).ceil(),
+      totalPages: (_users.length / effectiveLimit).ceil(),
       totalItems: _users.length,
     );
   }

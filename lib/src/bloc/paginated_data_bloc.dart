@@ -49,8 +49,8 @@ class PaginatedDataBloc<T>
   /// [itemsPerPage] defaults to [PaginationConfig.defaultItemsPerPage].
   /// [filters] are optional and passed to the repository on each request.
   PaginatedDataBloc({required this.repository, int? itemsPerPage, this.filters})
-    : itemsPerPage = itemsPerPage ?? PaginationConfig.defaultItemsPerPage,
-      super(PaginatedDataState<T>()) {
+      : itemsPerPage = itemsPerPage ?? PaginationConfig.defaultItemsPerPage,
+        super(PaginatedDataState<T>()) {
     on<LoadFirstPage>(_onLoadFirstPage);
     on<LoadMoreData>(_onLoadMoreData);
     on<RefreshData>(_onRefreshData);

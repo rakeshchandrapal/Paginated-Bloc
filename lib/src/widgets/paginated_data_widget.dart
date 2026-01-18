@@ -134,7 +134,7 @@ class PaginatedDataWidget<T> extends StatefulWidget {
   ///
   /// When the user scrolls past this percentage of the list,
   /// more items are loaded.
-  final double loadMoreThreshold;
+  final double? loadMoreThreshold;
 
   /// Whether to enable pull-to-refresh functionality.
   final bool enablePullToRefresh;
@@ -174,7 +174,7 @@ class PaginatedDataWidget<T> extends StatefulWidget {
     this.sliverHeaders,
     this.appBar,
     this.pinHeaders = false,
-    this.loadMoreThreshold = PaginationConfig.defaultLoadMoreThreshold,
+    this.loadMoreThreshold,
     this.enablePullToRefresh = false,
     this.enablePageSnapping = true,
     this.pageController,
@@ -259,7 +259,10 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
     // In that case, we should load more if not at max
     if (maxScroll == 0) return true;
 
-    return currentScroll >= (maxScroll * widget.loadMoreThreshold);
+    return currentScroll >=
+        (maxScroll *
+            (widget.loadMoreThreshold ??
+                PaginationConfig.defaultLoadMoreThreshold));
   }
 
   SliverGridDelegate get _effectiveGridDelegate {
@@ -287,8 +290,8 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
           return widget.firstPageErrorWidget?.call(
                 state.error ?? 'Something went wrong. Please try again.',
                 () => context.read<PaginatedDataBloc<T>>().add(
-                  const LoadFirstPage(),
-                ),
+                      const LoadFirstPage(),
+                    ),
               ) ??
               _buildDefaultErrorWidget(state.error, isFirstPage: true);
         }
@@ -501,8 +504,8 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
   Future<void> _onRefresh() async {
     context.read<PaginatedDataBloc<T>>().add(const RefreshData());
     await context.read<PaginatedDataBloc<T>>().stream.firstWhere(
-      (state) => state.status != PaginationStatus.refreshing,
-    );
+          (state) => state.status != PaginationStatus.refreshing,
+        );
   }
 
   // ============== Default Widgets ==============
@@ -544,12 +547,12 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
               onPressed: () {
                 if (isFirstPage) {
                   context.read<PaginatedDataBloc<T>>().add(
-                    const LoadFirstPage(),
-                  );
+                        const LoadFirstPage(),
+                      );
                 } else {
                   context.read<PaginatedDataBloc<T>>().add(
-                    const LoadMoreData(),
-                  );
+                        const LoadMoreData(),
+                      );
                 }
               },
               child: const Text('Retry'),
