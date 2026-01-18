@@ -320,45 +320,6 @@ class PaginationConfig {
 | `crossAxisCount` | `int?` | `2` | Grid columns |
 | `childAspectRatio` | `double?` | `1.0` | Grid item aspect ratio |
 
-## 🚀 Publishing to pub.dev
-
-### Prerequisites
-
-1. Create a [pub.dev](https://pub.dev) account
-2. Verify your email
-3. Run `dart pub login` to authenticate
-
-### Steps
-
-1. **Update package information** in `pubspec.yaml`:
-   ```yaml
-   name: your_package_name
-   version: 1.0.0
-   homepage: https://github.com/yourusername/your_package
-   repository: https://github.com/yourusername/your_package
-   ```
-
-2. **Verify package**:
-   ```bash
-   dart pub publish --dry-run
-   ```
-
-3. **Publish**:
-   ```bash
-   dart pub publish
-   ```
-
-### Pre-publish Checklist
-
-- [ ] Update `pubspec.yaml` with correct metadata
-- [ ] Add comprehensive `README.md`
-- [ ] Include `CHANGELOG.md`
-- [ ] Add `LICENSE` file (MIT recommended)
-- [ ] Add example in `example/` folder
-- [ ] Run `dart analyze` with no issues
-- [ ] Run `dart format .` to format code
-- [ ] Run `dart pub publish --dry-run` to verify
-
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
