@@ -286,14 +286,11 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
         if (state.status == PaginationStatus.firstPageError) {
           return widget.firstPageErrorWidget?.call(
                 state.error ?? 'Something went wrong. Please try again.',
-                () => context
-                    .read<PaginatedDataBloc<T>>()
-                    .add(const LoadFirstPage()),
+                () => context.read<PaginatedDataBloc<T>>().add(
+                  const LoadFirstPage(),
+                ),
               ) ??
-              _buildDefaultErrorWidget(
-                state.error,
-                isFirstPage: true,
-              );
+              _buildDefaultErrorWidget(state.error, isFirstPage: true);
         }
 
         // Empty state
@@ -345,10 +342,7 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
     );
 
     return widget.enablePullToRefresh
-        ? RefreshIndicator(
-            onRefresh: _onRefresh,
-            child: content,
-          )
+        ? RefreshIndicator(onRefresh: _onRefresh, child: content)
         : content;
   }
 
@@ -368,10 +362,7 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
     );
 
     return widget.enablePullToRefresh
-        ? RefreshIndicator(
-            onRefresh: _onRefresh,
-            child: content,
-          )
+        ? RefreshIndicator(onRefresh: _onRefresh, child: content)
         : content;
   }
 
@@ -408,9 +399,7 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
 
     if (widget.appBar != null) {
       return NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          widget.appBar!,
-        ],
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [widget.appBar!],
         body: widget.enablePullToRefresh
             ? RefreshIndicator(onRefresh: _onRefresh, child: scrollView)
             : scrollView,
@@ -512,8 +501,8 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
   Future<void> _onRefresh() async {
     context.read<PaginatedDataBloc<T>>().add(const RefreshData());
     await context.read<PaginatedDataBloc<T>>().stream.firstWhere(
-          (state) => state.status != PaginationStatus.refreshing,
-        );
+      (state) => state.status != PaginationStatus.refreshing,
+    );
   }
 
   // ============== Default Widgets ==============
@@ -554,13 +543,13 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
             ElevatedButton(
               onPressed: () {
                 if (isFirstPage) {
-                  context
-                      .read<PaginatedDataBloc<T>>()
-                      .add(const LoadFirstPage());
+                  context.read<PaginatedDataBloc<T>>().add(
+                    const LoadFirstPage(),
+                  );
                 } else {
-                  context
-                      .read<PaginatedDataBloc<T>>()
-                      .add(const LoadMoreData());
+                  context.read<PaginatedDataBloc<T>>().add(
+                    const LoadMoreData(),
+                  );
                 }
               },
               child: const Text('Retry'),
