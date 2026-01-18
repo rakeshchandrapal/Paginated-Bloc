@@ -1,0 +1,380 @@
+# Paginated BLoC Widget
+
+[![pub package](https://img.shields.io/pub/v/paginated_bloc_widget.svg)](https://pub.dev/packages/paginated_bloc_widget)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+A powerful, flexible, and production-ready pagination widget for Flutter using the BLoC pattern. This package provides a complete solution for implementing infinite scroll pagination with support for ListView, GridView, PageView, CustomScrollView, and Slivers.
+
+## ✨ Features
+
+- 🎯 **Generic Type Support** - Works with any data model
+- 📱 **Multiple Layout Types** - ListView, GridView, PageView, Slivers
+- 🔄 **Built-in States** - Loading, error, empty, and success states
+- ♻️ **Pull-to-Refresh** - Native refresh indicator support
+- 📏 **Customizable Threshold** - Configure when to trigger load more
+- 🎨 **Fully Customizable** - Override any widget state
+- 🧪 **Testable** - Includes in-memory repository for testing
+- 📦 **Zero Dependencies** - Only relies on `flutter_bloc` and `equatable`
+
+## 📦 Installation
+
+Add this to your `pubspec.yaml`:
+
+```yaml
+dependencies:
+  paginated_bloc_widget: ^1.0.0
+```
+
+Then run:
+
+```bash
+flutter pub get
+```
+
+## 🚀 Quick Start
+
+### 1. Create Your Model
+
+```dart
+class User {
+  final int id;
+  final String name;
+  final String email;
+
+  User({required this.id, required this.name, required this.email});
+
+  factory User.fromJson(Map<String, dynamic> json) => User(
+    id: json['id'],
+    name: json['name'],
+    email: json['email'],
+  );
+}
+```
+
+### 2. Implement the Repository
+
+```dart
+import 'package:paginated_bloc_widget/paginated_bloc_widget.dart';
+
+class UserRepository extends PaginatedDataRepository<User> {
+  final ApiClient _client;
+
+  UserRepository(this._client);
+
+  @override
+  Future<PaginatedResponse<User>> fetchData({
+    required int page,
+    int limit = 10,
+    Map<String, dynamic>? filters,
+  }) async {
+    final response = await _client.getUsers(page: page, limit: limit);
+    
+    return PaginatedResponse(
+      data: response.users.map((e) => User.fromJson(e)).toList(),
+      hasMore: page < response.totalPages,
+      currentPage: page,
+      totalPages: response.totalPages,
+      totalItems: response.totalCount,
+    );
+  }
+}
+```
+
+### 3. Use the Widget
+
+```dart
+import 'package:paginated_bloc_widget/paginated_bloc_widget.dart';
+
+class UserListPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => PaginatedDataBloc<User>(
+        repository: UserRepository(context.read<ApiClient>()),
+        itemsPerPage: 20,
+      )..add(const LoadFirstPage()),
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Users')),
+        body: PaginatedDataWidget<User>(
+          enablePullToRefresh: true,
+          itemBuilder: (context, user, index) => ListTile(
+            leading: CircleAvatar(child: Text(user.name[0])),
+            title: Text(user.name),
+            subtitle: Text(user.email),
+          ),
+        ),
+      ),
+    );
+  }
+}
+```
+
+## 📖 Usage Examples
+
+### ListView with Separator
+
+```dart
+PaginatedDataWidget<User>(
+  layoutType: PaginatedLayoutType.listView,
+  separatorWidget: const Divider(height: 1),
+  enablePullToRefresh: true,
+  itemBuilder: (context, user, index) => ListTile(
+    title: Text(user.name),
+  ),
+)
+```
+
+### GridView
+
+```dart
+PaginatedDataWidget<Product>(
+  layoutType: PaginatedLayoutType.gridView,
+  crossAxisCount: 2,
+  childAspectRatio: 0.75,
+  crossAxisSpacing: 8,
+  mainAxisSpacing: 8,
+  padding: const EdgeInsets.all(16),
+  itemBuilder: (context, product, index) => ProductCard(product: product),
+)
+```
+
+### Horizontal PageView
+
+```dart
+PaginatedDataWidget<Story>(
+  layoutType: PaginatedLayoutType.pageView,
+  scrollDirection: ScrollDirection.horizontal,
+  enablePageSnapping: true,
+  itemBuilder: (context, story, index) => StoryPage(story: story),
+)
+```
+
+### CustomScrollView with Sliver Headers
+
+```dart
+PaginatedDataWidget<Item>(
+  layoutType: PaginatedLayoutType.sliverList,
+  sliverHeaders: [
+    SliverAppBar(
+      title: const Text('My Items'),
+      floating: true,
+    ),
+    SliverToBoxAdapter(
+      child: Container(
+        height: 100,
+        child: const Text('Header Content'),
+      ),
+    ),
+  ],
+  itemBuilder: (context, item, index) => ItemTile(item: item),
+)
+```
+
+### Custom State Widgets
+
+```dart
+PaginatedDataWidget<User>(
+  firstPageLoadingWidget: const ShimmerList(),
+  loadMoreLoadingWidget: const SmallLoader(),
+  emptyWidget: const EmptyState(
+    icon: Icons.people_outline,
+    message: 'No users found',
+  ),
+  firstPageErrorWidget: (error, retry) => ErrorWidget(
+    message: error,
+    onRetry: retry,
+  ),
+  loadMoreErrorWidget: (error, retry) => TextButton(
+    onPressed: retry,
+    child: Text('Error: $error. Tap to retry'),
+  ),
+  itemBuilder: (context, user, index) => UserTile(user: user),
+)
+```
+
+### With Filters
+
+```dart
+PaginatedDataBloc<User>(
+  repository: userRepository,
+  filters: {
+    'status': 'active',
+    'role': 'admin',
+    'sortBy': 'createdAt',
+  },
+)..add(const LoadFirstPage())
+```
+
+## 🔧 BLoC Events
+
+| Event | Description |
+|-------|-------------|
+| `LoadFirstPage()` | Load the first page of data |
+| `LoadMoreData()` | Load the next page |
+| `RefreshData()` | Refresh and reload first page |
+| `ResetPagination()` | Reset to initial state |
+| `UpdateItem<T>(item, matcher)` | Update an existing item |
+| `RemoveItem<T>(item, matcher)` | Remove an item from the list |
+| `AddItem<T>(item, insertAtStart)` | Add a new item |
+
+### Updating Items
+
+```dart
+// Update a user in the list
+context.read<PaginatedDataBloc<User>>().add(
+  UpdateItem<User>(
+    updatedUser,
+    matcher: (oldItem, newItem) => oldItem.id == newItem.id,
+  ),
+);
+```
+
+### Removing Items
+
+```dart
+// Remove a user by ID
+context.read<PaginatedDataBloc<User>>().add(
+  RemoveItem<User>(
+    matcher: (item) => item.id == deletedUserId,
+  ),
+);
+```
+
+### Adding Items
+
+```dart
+// Add a new user at the start
+context.read<PaginatedDataBloc<User>>().add(
+  AddItem<User>(newUser, insertAtStart: true),
+);
+```
+
+## 📊 State Properties
+
+Access state properties in your UI:
+
+```dart
+BlocBuilder<PaginatedDataBloc<User>, PaginatedDataState<User>>(
+  builder: (context, state) {
+    // Helper getters
+    state.isInitial          // Initial state
+    state.isFirstPageLoading // Loading first page
+    state.isLoadingMore      // Loading more items
+    state.isRefreshing       // Refreshing data
+    state.hasError           // Any error occurred
+    state.isEmpty            // No items loaded
+    state.isSuccess          // Data loaded successfully
+    
+    // Data access
+    state.items              // List of loaded items
+    state.itemCount          // Number of items
+    state.currentPage        // Current page number
+    state.hasReachedMax      // All pages loaded
+    state.totalItems         // Total items (if known)
+    state.totalPages         // Total pages (if known)
+    state.loadProgress       // Loading progress (0.0 - 1.0)
+    state.error              // Error message
+    
+    return YourWidget();
+  },
+)
+```
+
+## 🧪 Testing
+
+Use the included `InMemoryPaginatedRepository` for testing:
+
+```dart
+final testRepository = InMemoryPaginatedRepository<User>(
+  items: List.generate(100, (i) => User(id: i, name: 'User $i')),
+  simulatedDelay: const Duration(milliseconds: 500),
+);
+
+final bloc = PaginatedDataBloc<User>(
+  repository: testRepository,
+  itemsPerPage: 10,
+);
+```
+
+## ⚙️ Configuration
+
+### PaginationConfig
+
+```dart
+class PaginationConfig {
+  static const int defaultItemsPerPage = 10;
+  static const double defaultLoadMoreThreshold = 0.8;
+  static const int defaultPageViewLoadMoreOffset = 3;
+}
+```
+
+### Widget Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `layoutType` | `PaginatedLayoutType` | `listView` | Layout type to use |
+| `scrollDirection` | `ScrollDirection` | `vertical` | Scroll direction |
+| `loadMoreThreshold` | `double` | `0.8` | Scroll threshold to trigger load more |
+| `enablePullToRefresh` | `bool` | `false` | Enable pull-to-refresh |
+| `shrinkWrap` | `bool` | `false` | Shrink wrap content |
+| `crossAxisCount` | `int?` | `2` | Grid columns |
+| `childAspectRatio` | `double?` | `1.0` | Grid item aspect ratio |
+
+## 🚀 Publishing to pub.dev
+
+### Prerequisites
+
+1. Create a [pub.dev](https://pub.dev) account
+2. Verify your email
+3. Run `dart pub login` to authenticate
+
+### Steps
+
+1. **Update package information** in `pubspec.yaml`:
+   ```yaml
+   name: your_package_name
+   version: 1.0.0
+   homepage: https://github.com/yourusername/your_package
+   repository: https://github.com/yourusername/your_package
+   ```
+
+2. **Verify package**:
+   ```bash
+   dart pub publish --dry-run
+   ```
+
+3. **Publish**:
+   ```bash
+   dart pub publish
+   ```
+
+### Pre-publish Checklist
+
+- [ ] Update `pubspec.yaml` with correct metadata
+- [ ] Add comprehensive `README.md`
+- [ ] Include `CHANGELOG.md`
+- [ ] Add `LICENSE` file (MIT recommended)
+- [ ] Add example in `example/` folder
+- [ ] Run `dart analyze` with no issues
+- [ ] Run `dart format .` to format code
+- [ ] Run `dart pub publish --dry-run` to verify
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📣 Support
+
+If you find this package helpful, please give it a ⭐ on GitHub!
+
+For bugs and feature requests, please [open an issue](https://github.com/yourusername/paginated_bloc_widget/issues).

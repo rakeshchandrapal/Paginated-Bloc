@@ -1,0 +1,33 @@
+name: paginated_bloc_widget
+description: A powerful, flexible, and production-ready pagination widget for Flutter using BLoC pattern. Supports ListView, GridView, PageView, CustomScrollView, and Slivers with built-in loading states, error handling, and pull-to-refresh.
+version: 1.0.0
+homepage: https://github.com/yourusername/paginated_bloc_widget
+repository: https://github.com/yourusername/paginated_bloc_widget
+issue_tracker: https://github.com/yourusername/paginated_bloc_widget/issues
+documentation: https://github.com/yourusername/paginated_bloc_widget#readme
+
+topics:
+  - pagination
+  - bloc
+  - infinite-scroll
+  - listview
+  - gridview
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.10.0'
+
+dependencies:
+  bloc: ^8.1.0
+  equatable: ^2.0.5
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^8.1.0
+
+dev_dependencies:
+  flutter_lints: ^3.0.0
+  flutter_test:
+    sdk: flutter
+  mocktail: ^1.0.0
+
+flutter:
