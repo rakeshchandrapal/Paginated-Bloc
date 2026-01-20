@@ -22,7 +22,7 @@ Add this to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  paginated_bloc_widget: ^1.0.0
+  paginated_bloc_widget: ^1.1.0
 ```
 
 Then run:
@@ -170,7 +170,9 @@ PaginatedDataWidget<Item>(
 )
 ```
 
-### Custom State Widgets
+### Custom State Widgets (Local Override)
+
+Override state widgets for a specific widget (highest priority over global theme):
 
 ```dart
 PaginatedDataWidget<User>(
@@ -191,6 +193,8 @@ PaginatedDataWidget<User>(
   itemBuilder: (context, user, index) => UserTile(user: user),
 )
 ```
+
+**Tip:** For app-wide consistent styling, use `PaginationTheme` instead of repeating customizations in every widget.
 
 ### With Filters
 
@@ -298,13 +302,166 @@ final bloc = PaginatedDataBloc<User>(
 
 ## ⚙️ Configuration
 
-### PaginationConfig
+### Global Configuration with PaginationConfig
+
+Set global defaults for all pagination widgets at app startup:
 
 ```dart
-class PaginationConfig {
-  static const int defaultItemsPerPage = 10;
-  static const double defaultLoadMoreThreshold = 0.8;
-  static const int defaultPageViewLoadMoreOffset = 3;
+void main() {
+  // Initialize global pagination settings
+  PaginationConfig.init(
+    itemsPerPage: 20,              // Default items per page
+    loadMoreThreshold: 0.85,       // Scroll threshold (0.0 to 1.0)
+    pageViewLoadMoreOffset: 2,     // Pages from end to load more in PageView
+  );
+  
+  runApp(const MyApp());
+}
+```
+
+**PaginationConfig Defaults:**
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `itemsPerPage` | `10` | Number of items to fetch per page |
+| `loadMoreThreshold` | `0.8` | Scroll position threshold (80% scrolled) |
+| `pageViewLoadMoreOffset` | `3` | Pages from end to trigger load in PageView |
+
+### Global Widget Theming with PaginationTheme
+
+Provide custom widget builders for all paginated widgets in your app:
+
+```dart
+@override
+Widget build(BuildContext context) {
+  return PaginationTheme(
+    data: PaginationThemeData(
+      firstPageLoadingBuilder: (context) => const Center(
+        child: CircularProgressIndicator.adaptive(),
+      ),
+      loadMoreLoadingBuilder: (context) => const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      firstPageErrorBuilder: (context, error, retry) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(error, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: retry,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+      loadMoreErrorBuilder: (context, error, retry) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Error: $error'),
+            const SizedBox(width: 8),
+            ElevatedButton(
+              onPressed: retry,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+      emptyBuilder: (context) => const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inbox_outlined, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('No items found'),
+          ],
+        ),
+      ),
+    ),
+    child: MaterialApp(
+      home: MyHomePage(),
+    ),
+  );
+}
+```
+
+### Local Widget Override
+
+Override global theme for specific widgets (highest priority):
+
+```dart
+PaginatedDataWidget<User>(
+  // These override the global PaginationTheme
+  firstPageLoadingWidget: const CustomLoader(),
+  loadMoreLoadingWidget: const SmallSpinner(),
+  emptyWidget: const CustomEmptyState(),
+  firstPageErrorWidget: (error, retry) => CustomErrorWidget(
+    message: error,
+    onRetry: retry,
+  ),
+  itemBuilder: (context, user, index) => UserTile(user: user),
+)
+```
+
+**Resolution Order:**
+1. Local widget parameter (passed to `PaginatedDataWidget`)
+2. Global `PaginationTheme` data
+3. Default built-in widget
+
+### Complete Setup Example
+
+```dart
+void main() {
+  // Step 1: Set global pagination config
+  PaginationConfig.init(
+    itemsPerPage: 15,
+    loadMoreThreshold: 0.9,
+  );
+  
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return PaginationTheme(
+      // Step 2: Set global theme for all widgets
+      data: PaginationThemeData(
+        firstPageLoadingBuilder: (context) => const CustomAppLoader(),
+        emptyBuilder: (context) => const CustomEmptyState(),
+      ),
+      child: MaterialApp(
+        home: UserListPage(),
+      ),
+    );
+  }
+}
+
+class UserListPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => PaginatedDataBloc<User>(
+        repository: UserRepository(),
+        itemsPerPage: 20, // Override global config (10 → 20)
+      )..add(const LoadFirstPage()),
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Users')),
+        // Step 3: Optional - override theme for this widget only
+        body: PaginatedDataWidget<User>(
+          firstPageLoadingWidget: const LinearProgressIndicator(), // Override theme
+          itemBuilder: (context, user, index) => UserTile(user: user),
+        ),
+      ),
+    );
+  }
 }
 ```
 
@@ -314,7 +471,7 @@ class PaginationConfig {
 |----------|------|---------|-------------|
 | `layoutType` | `PaginatedLayoutType` | `listView` | Layout type to use |
 | `scrollDirection` | `ScrollDirection` | `vertical` | Scroll direction |
-| `loadMoreThreshold` | `double` | `0.8` | Scroll threshold to trigger load more |
+| `loadMoreThreshold` | `double?` | Global value | Scroll threshold to trigger load more |
 | `enablePullToRefresh` | `bool` | `false` | Enable pull-to-refresh |
 | `shrinkWrap` | `bool` | `false` | Shrink wrap content |
 | `crossAxisCount` | `int?` | `2` | Grid columns |

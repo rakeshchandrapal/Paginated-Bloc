@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../bloc/paginated_data_bloc.dart';
 import '../config/pagination_config.dart';
+import '../config/pagination_theme.dart';
 import '../enums/paginated_enums.dart';
 
 /// A flexible widget for displaying paginated data with various layout types.
@@ -244,6 +246,28 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
     }
   }
 
+  /// Checks if the viewport is not filled and loads more data if needed.
+  ///
+  /// This is called after successful data loads to handle cases where
+  /// the initial items don't fill the viewport (making scroll impossible).
+  void _checkAndLoadMoreIfNeeded() {
+    // Skip for PageView as it has its own pagination logic
+    if (widget.layoutType == PaginatedLayoutType.pageView) return;
+
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!_scrollController.hasClients) return;
+
+      final state = context.read<PaginatedDataBloc<T>>().state;
+      if (state.hasReachedMax || state.isLoadingMore) return;
+
+      // If content doesn't fill the viewport, load more
+      if (_scrollController.position.maxScrollExtent == 0) {
+        context.read<PaginatedDataBloc<T>>().add(const LoadMoreData());
+      }
+    });
+  }
+
   bool get _shouldLoadMore {
     if (!_scrollController.hasClients) return false;
 
@@ -278,32 +302,50 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<PaginatedDataBloc<T>, PaginatedDataState<T>>(
-      builder: (context, state) {
-        // First page loading
-        if (state.isFirstPageLoading) {
-          return widget.firstPageLoadingWidget ?? _buildDefaultLoadingWidget();
-        }
-
-        // First page error
-        if (state.status == PaginationStatus.firstPageError) {
-          return widget.firstPageErrorWidget?.call(
-                state.error ?? 'Something went wrong. Please try again.',
-                () => context.read<PaginatedDataBloc<T>>().add(
-                      const LoadFirstPage(),
-                    ),
-              ) ??
-              _buildDefaultErrorWidget(state.error, isFirstPage: true);
-        }
-
-        // Empty state
-        if (state.isEmpty) {
-          return widget.emptyWidget ?? _buildDefaultEmptyWidget();
-        }
-
-        // Build the appropriate layout
-        return _buildLayout(state);
+    return BlocListener<PaginatedDataBloc<T>, PaginatedDataState<T>>(
+      listenWhen: (previous, current) {
+        // Listen only for success states that might need viewport fill check
+        return current.status == PaginationStatus.firstPageSuccess ||
+            current.status == PaginationStatus.loadMoreSuccess ||
+            current.status == PaginationStatus.refreshSuccess;
       },
+      listener: (context, state) {
+        _checkAndLoadMoreIfNeeded();
+      },
+      child: BlocBuilder<PaginatedDataBloc<T>, PaginatedDataState<T>>(
+        builder: (context, state) {
+          final theme = PaginationTheme.of(context);
+
+          // First page loading
+          if (state.isFirstPageLoading) {
+            return widget.firstPageLoadingWidget ??
+                theme.firstPageLoadingBuilder?.call(context) ??
+                _buildDefaultLoadingWidget();
+          }
+
+          // First page error
+          if (state.status == PaginationStatus.firstPageError) {
+            final error =
+                state.error ?? 'Something went wrong. Please try again.';
+            void retry() => context.read<PaginatedDataBloc<T>>().add(
+                  const LoadFirstPage(),
+                );
+            return widget.firstPageErrorWidget?.call(error, retry) ??
+                theme.firstPageErrorBuilder?.call(context, error, retry) ??
+                _buildDefaultErrorWidget(state.error, isFirstPage: true);
+          }
+
+          // Empty state
+          if (state.isEmpty) {
+            return widget.emptyWidget ??
+                theme.emptyBuilder?.call(context) ??
+                _buildDefaultEmptyWidget();
+          }
+
+          // Build the appropriate layout
+          return _buildLayout(state);
+        },
+      ),
     );
   }
 
@@ -350,18 +392,51 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
   }
 
   Widget _buildGridView(PaginatedDataState<T> state) {
-    final content = GridView.builder(
+    final theme = PaginationTheme.of(context);
+
+    // Build the load more widget separately for grids
+    Widget? loadMoreWidget;
+    if (!state.hasReachedMax) {
+      if (state.isLoadingMore) {
+        loadMoreWidget = widget.loadMoreLoadingWidget ??
+            theme.loadMoreLoadingBuilder?.call(context) ??
+            _buildLoadMoreIndicator();
+      } else if (state.status == PaginationStatus.loadMoreError) {
+        final error = state.error ?? 'Unknown error';
+        void retry() =>
+            context.read<PaginatedDataBloc<T>>().add(const LoadMoreData());
+        loadMoreWidget = widget.loadMoreErrorWidget?.call(error, retry) ??
+            theme.loadMoreErrorBuilder?.call(context, error, retry) ??
+            _buildLoadMoreErrorWidget(state.error);
+      }
+    }
+
+    // Always use CustomScrollView for consistency to avoid scroll position reset
+    final slivers = <Widget>[
+      SliverPadding(
+        padding: widget.padding ?? EdgeInsets.zero,
+        sliver: SliverGrid(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) =>
+                widget.itemBuilder(context, state.items[index], index),
+            childCount: state.items.length,
+          ),
+          gridDelegate: _effectiveGridDelegate,
+        ),
+      ),
+      if (loadMoreWidget != null)
+        SliverToBoxAdapter(child: loadMoreWidget),
+    ];
+
+    final content = CustomScrollView(
       controller: _scrollController,
       scrollDirection: _getAxisDirection(),
       reverse: widget.reverse,
-      padding: widget.padding,
       physics: widget.physics,
       shrinkWrap: widget.shrinkWrap,
       restorationId: widget.restorationId,
       clipBehavior: widget.clipBehavior,
-      gridDelegate: _effectiveGridDelegate,
-      itemCount: state.items.length + (state.hasReachedMax ? 0 : 1),
-      itemBuilder: (context, index) => _buildListItem(state, index),
+      slivers: slivers,
     );
 
     return widget.enablePullToRefresh
@@ -375,6 +450,7 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
 
   Widget _buildCustomScrollView(PaginatedDataState<T> state) {
     final slivers = <Widget>[];
+    final theme = PaginationTheme.of(context);
 
     // Add custom headers
     if (widget.sliverHeaders != null) {
@@ -384,7 +460,27 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
     // Add main content sliver
     if (widget.layoutType == PaginatedLayoutType.gridView ||
         widget.layoutType == PaginatedLayoutType.sliverGrid) {
-      slivers.add(_buildSliverGrid(state));
+      slivers.add(_buildSliverGridOnly(state));
+
+      // Add load more widget as separate sliver for grids (centered)
+      if (!state.hasReachedMax) {
+        Widget? loadMoreWidget;
+        if (state.isLoadingMore) {
+          loadMoreWidget = widget.loadMoreLoadingWidget ??
+              theme.loadMoreLoadingBuilder?.call(context) ??
+              _buildLoadMoreIndicator();
+        } else if (state.status == PaginationStatus.loadMoreError) {
+          final error = state.error ?? 'Unknown error';
+          void retry() =>
+              context.read<PaginatedDataBloc<T>>().add(const LoadMoreData());
+          loadMoreWidget = widget.loadMoreErrorWidget?.call(error, retry) ??
+              theme.loadMoreErrorBuilder?.call(context, error, retry) ??
+              _buildLoadMoreErrorWidget(state.error);
+        }
+        if (loadMoreWidget != null) {
+          slivers.add(SliverToBoxAdapter(child: loadMoreWidget));
+        }
+      }
     } else {
       slivers.add(_buildSliverList(state));
     }
@@ -430,13 +526,14 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
     );
   }
 
-  Widget _buildSliverGrid(PaginatedDataState<T> state) {
+  Widget _buildSliverGridOnly(PaginatedDataState<T> state) {
     return SliverPadding(
       padding: widget.padding ?? EdgeInsets.zero,
       sliver: SliverGrid(
         delegate: SliverChildBuilderDelegate(
-          (context, index) => _buildListItem(state, index),
-          childCount: state.items.length + (state.hasReachedMax ? 0 : 1),
+          (context, index) =>
+              widget.itemBuilder(context, state.items[index], index),
+          childCount: state.items.length,
         ),
         gridDelegate: _effectiveGridDelegate,
       ),
@@ -463,15 +560,19 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
       return widget.itemBuilder(context, state.items[index], index);
     }
 
+    final theme = PaginationTheme.of(context);
+
     // Loading more indicator or error
     if (state.isLoadingMore) {
-      return widget.loadMoreLoadingWidget ?? _buildLoadMoreIndicator();
+      return widget.loadMoreLoadingWidget ??
+          theme.loadMoreLoadingBuilder?.call(context) ??
+          _buildLoadMoreIndicator();
     } else if (state.status == PaginationStatus.loadMoreError) {
-      return widget.loadMoreErrorWidget?.call(
-            state.error ?? 'Unknown error',
-            () =>
-                context.read<PaginatedDataBloc<T>>().add(const LoadMoreData()),
-          ) ??
+      final error = state.error ?? 'Unknown error';
+      void retry() =>
+          context.read<PaginatedDataBloc<T>>().add(const LoadMoreData());
+      return widget.loadMoreErrorWidget?.call(error, retry) ??
+          theme.loadMoreErrorBuilder?.call(context, error, retry) ??
           _buildLoadMoreErrorWidget(state.error);
     }
 
@@ -487,9 +588,13 @@ class _PaginatedDataWidgetState<T> extends State<PaginatedDataWidget<T>> {
       );
     }
 
+    final theme = PaginationTheme.of(context);
+
     // Loading more indicator
     if (state.isLoadingMore) {
-      return widget.loadMoreLoadingWidget ?? _buildLoadMoreIndicator();
+      return widget.loadMoreLoadingWidget ??
+          theme.loadMoreLoadingBuilder?.call(context) ??
+          _buildLoadMoreIndicator();
     }
 
     return const SizedBox.shrink();

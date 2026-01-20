@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-01-20
+
+### Added
+
+- `PaginationTheme` (InheritedWidget) to provide global builders for loading, error, and empty states
+- Documentation updates showing global config/theme plus local widget overrides
+
+### Changed
+
+- GridView pagination now uses a single `CustomScrollView` with slivers to preserve scroll position and center load-more indicators
+- Load-more auto-fill logic improved for short lists that don't reach scroll threshold
+- README expanded with end-to-end setup: `PaginationConfig.init`, `PaginationTheme`, and local overrides
+
 ## [1.0.2] - 2025-01-18
 
 ### Changed

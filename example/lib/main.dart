@@ -3,6 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:paginated_bloc_widget/paginated_bloc_widget.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  PaginationConfig.init(
+    itemsPerPage: 4,
+  );
   runApp(const MyApp());
 }
 
@@ -109,7 +113,7 @@ class User {
 // Sample Repository using InMemoryPaginatedRepository
 // ============================================================
 
-class UserRepository extends PaginatedDataRepository<User> {
+class  UserRepository extends PaginatedDataRepository<User> {
   final List<User> _users = List.generate(
     100,
     (index) => User(
@@ -175,7 +179,6 @@ class ListViewExample extends StatelessWidget {
     return BlocProvider(
       create: (context) => PaginatedDataBloc<User>(
         repository: UserRepository(),
-        itemsPerPage: 15,
       )..add(const LoadFirstPage()),
       child: Scaffold(
         appBar: AppBar(
@@ -239,7 +242,6 @@ class GridViewExample extends StatelessWidget {
     return BlocProvider(
       create: (context) => PaginatedDataBloc<User>(
         repository: UserRepository(),
-        itemsPerPage: 20,
       )..add(const LoadFirstPage()),
       child: Scaffold(
         appBar: AppBar(title: const Text('GridView Example')),
@@ -315,7 +317,7 @@ class PageViewExample extends StatelessWidget {
     return BlocProvider(
       create: (context) => PaginatedDataBloc<User>(
         repository: UserRepository(),
-        itemsPerPage: 10,
+      
       )..add(const LoadFirstPage()),
       child: Scaffold(
         appBar: AppBar(title: const Text('PageView Example')),
@@ -375,7 +377,6 @@ class SliverExample extends StatelessWidget {
     return BlocProvider(
       create: (context) => PaginatedDataBloc<User>(
         repository: UserRepository(),
-        itemsPerPage: 15,
       )..add(const LoadFirstPage()),
       child: Scaffold(
         body: PaginatedDataWidget<User>(

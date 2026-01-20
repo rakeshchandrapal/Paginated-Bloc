@@ -45,3 +45,4 @@ export 'src/widgets/paginated_data_widget.dart';
 
 // Configuration
 export 'src/config/pagination_config.dart';
+export 'src/config/pagination_theme.dart';
