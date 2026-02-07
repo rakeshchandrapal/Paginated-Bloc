@@ -22,7 +22,7 @@ Add this to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  paginated_bloc_widget: ^1.1.0
+  paginated_bloc_widget: ^1.1.1
 ```
 
 Then run:
