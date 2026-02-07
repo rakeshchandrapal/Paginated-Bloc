@@ -78,3 +78,6 @@ State uses `PaginationStatus` enum - handle all status transitions in widgets:
 - This is a **package**, not an app - no `main.dart` in lib/
 - Minimum SDK: Dart 3.0, Flutter 3.10
 - Keep `flutter_bloc` version range broad for compatibility (`>=8.1.0 <10.0.0`)
+
+dart pub publish --dry-run
+dart pub publish

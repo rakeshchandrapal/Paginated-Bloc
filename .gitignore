@@ -28,7 +28,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
-.github\copilot-instructions.md
+.github/copilot-instructions.md
 pubspec.lock
 
 # Symbolication related

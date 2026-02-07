@@ -495,4 +495,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 If you find this package helpful, please give it a ⭐ on GitHub!
 
-For bugs and feature requests, please [open an issue](https://github.com/yourusername/paginated_bloc_widget/issues).
+For bugs and feature requests, please [open an issue](https://github.com/rakeshchandrapal/Paginated-Bloc/issues).
+
+## 👥 Contributors
+
+- [Yash Parmar](https://github.com/YashParmar0001)
